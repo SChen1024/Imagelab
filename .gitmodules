@@ -1,0 +1,3 @@
+[submodule "Depend"]
+	path = Depend
+	url = https://gitee.com/schen00/CVDepend.git
