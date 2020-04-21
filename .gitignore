@@ -109,3 +109,5 @@ x64/
 Debug/
 *.db
 release/
+TestImages/lena_write.png
+*.opendb
