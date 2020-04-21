@@ -1,49 +1,59 @@
 #include "mainwindow.h"
-
 #include <QApplication>
-
-
 // 引入 opencv 函数头文件
 #include <opencv2/opencv.hpp>
-
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
-
-
+    //QApplication a(argc, argv);
+    //MainWindow w;
+    //w.show();
     // 设置 要显示的图像路径
-    std::string test_pic = "./TestImages/lena.png";
+    //std::string test_pic = "./TestImages/lena.png";
+    double time_cnt = 0;
+    double time_s = 0.0;
 
     // 读取图像
-    cv::Mat lena_rgb = cv::imread(test_pic);
+    // cv::Mat lena_rgb = cv::imread(test_pic);
+    // 声明 彩色图像 和灰度图像  // 设置 10000*10000 尺寸的图像, 避免出错
+    cv::Mat img_bgr = cv::Mat::zeros(cv::Size(1000, 1000), CV_8UC3);
 
-    //  生命三个灰色的图像
-    cv::Mat lena_gray_avg = cv::Mat::zeros(lena_rgb.size(), CV_8UC1);
-    cv::Mat lena_gray_weighted = cv::Mat::zeros(lena_rgb.size(), CV_8UC1);
-    cv::Mat lena_gray_shift = cv::Mat::zeros(lena_rgb.size(), CV_8UC1);
-
+    time_cnt = cv::getTickCount();
     // 遍历每一个像素进行灰度化
-    for (int i = 0; i < lena_rgb.rows; i++)
+    for (int i = 0; i < img_bgr.rows; i++)
     {
-        for (int j = 0; j < lena_rgb.cols; j++)
+        for (int j = 0; j < img_bgr.cols; j++)
         {
-            cv::Vec3b tmp_px = lena_rgb.at<cv::Vec3b>(i, j);
-            lena_gray_avg.at<uchar>(i, j) = (uchar)((tmp_px[0] + tmp_px[1] + tmp_px[2]) / 3);
-            lena_gray_weighted.at<uchar>(i, j) = (uchar)((0.299f * tmp_px[0] + 0.587f * tmp_px[1] + 0.114f * tmp_px[2]));
-            lena_gray_shift.at<uchar>(i, j) = (uchar)((38 * tmp_px[0] + 75 * tmp_px[1] + 15 * tmp_px[2]) >> 7);
+            img_bgr.at<cv::Vec3b>(i, j)[0] = 0;
         }
     }
+    time_s = ((double)cv::getTickCount() - time_cnt) / cv::getTickFrequency();
+    printf("index scan image time: \t\t %f second \n", time_s);
 
-    // 显示图像
-    cv::imshow("lena_rgb", lena_rgb);
-    cv::imshow("lena_gray_avg", lena_gray_avg);
-    cv::imshow("lena_gray_weighted", lena_gray_weighted);
-    cv::imshow("lena_gray_shift", lena_gray_shift);
+    time_cnt = cv::getTickCount();
+    // 使用指针进行图像访问
+    for (int i = 0; i < img_bgr.rows; i++)
+    {
+        cv::Vec3b *p_bgr = img_bgr.ptr<cv::Vec3b>(i);
+        for (int j = 0; j < img_bgr.cols; j++)
+        {
+            p_bgr[j][0] = 0;    // 访问(i,j) 的第一个通道
+        }
+    }
+    time_s = ((double)cv::getTickCount() - time_cnt) / cv::getTickFrequency();
+    printf("pointer scan image time: \t %f second \n", time_s);
+
+    time_cnt = cv::getTickCount();
+    // 使用迭代器访问
+    for (cv::Mat_<cv::Vec3b>::iterator it = img_bgr.begin<cv::Vec3b>();
+        it != img_bgr.end<cv::Vec3b>(); it++)
+    {
+        (*it)[0] = 0;
+    }
+    time_s = ((double)cv::getTickCount() - time_cnt) / cv::getTickFrequency();
+    printf("iterator scan image time: \t %f second \n", time_s);
 
     cv::waitKey(0);
 
-
-    return a.exec();
+    return 0;
+    // return a.exec();
 }
