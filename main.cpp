@@ -17,18 +17,17 @@ int main(int argc, char *argv[])
     // 声明结果图像 1020*1020
     cv::Mat res_bgr = cv::Mat::zeros(cv::Size(512,512), CV_8UC3);
 
+    float a = 2.2f, b = 50;
     for (int i = 0; i < lena_bgr.rows; i++)
     {
         for (int j = 0; j < lena_bgr.cols; j++)
         {
-            // 求出最小值
-            cv::Vec3b tmp_px = lena_bgr.at<cv::Vec3b>(i, j);
-            int min_c = std::min(std::min(tmp_px[0], tmp_px[1]), tmp_px[2]);
-            
+            // 取出原始图像 灰度值
+            cv::Vec3b tmp_px = lena_bgr.at<cv::Vec3b>(i, j);  
             // 每个通道减去最小值
-            res_bgr.at<cv::Vec3b>(i, j)[0] = tmp_px[0] - min_c;
-            res_bgr.at<cv::Vec3b>(i, j)[1] = tmp_px[1] - min_c;
-            res_bgr.at<cv::Vec3b>(i, j)[2] = tmp_px[2] - min_c;
+            res_bgr.at<cv::Vec3b>(i, j)[0] = cv::saturate_cast<uchar>(a * tmp_px[0] + b);
+            res_bgr.at<cv::Vec3b>(i, j)[1] = cv::saturate_cast<uchar>(a * tmp_px[1] + b);
+            res_bgr.at<cv::Vec3b>(i, j)[2] = cv::saturate_cast<uchar>(a * tmp_px[2] + b);
         }
     }
     cv::imshow("lena_bgr", lena_bgr);
