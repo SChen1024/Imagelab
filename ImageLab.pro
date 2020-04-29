@@ -30,18 +30,25 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 #  引入各种库 win32
 win32{
 
-
     # 独立依赖文件夹,
     DEPENDS     = $$PWD/depend/
 
     # 动态添加， 不需要本地配置环境
-    OPENCV_LIB  = -L$$DEPENDS/opencv/lib/ -lopencv_world430  \
-                  -L$$DEPENDS/opencv/lib/ -lopencv_world430d
+    OPENCV_LIB  = -L$$DEPENDS/opencv/lib/ -lopencv_world430
+    OPENCV_LIBd = -L$$DEPENDS/opencv/lib/ -lopencv_world430d
     OPENCV_INC  =  $$DEPENDS/opencv/include
+
+    # 添加库
+    win32:CONFIG(release, debug|release): LIBS += $$OPENCV_LIB
+    else:win32:CONFIG(debug, debug|release): LIBS += $$OPENCV_LIBd
 }
-    # 加入依赖库和依赖头文件
-LIBS += $$OPENCV_LIB
-INCLUDEPATH += $$OPENCV_INC \
+
+
+
+
+# 加入依赖库和依赖头文件
+# LIBS += $$OPENCV_LIB
+INCLUDEPATH += $$OPENCV_INC
 DEPENDPATH += $$OPENCV_INC
 
 
