@@ -4,6 +4,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
 
+#  显示控控制台窗口, 用于调试
+CONFIG += console
+
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
@@ -15,15 +18,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-SOURCES += \
-    main.cpp \
-    mainwindow.cpp
-
-HEADERS += \
-    mainwindow.h
-
-FORMS += \
-    mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -31,9 +25,28 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 
+#  引入各种库 win32
+win32{
+    # 独立依赖文件夹,
+    DEPENDS     = $$PWD/Depend/
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/Depend/opencv/lib/ -lopencv_world430
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/Depend/opencv/lib/ -lopencv_world430d
+    # 动态添加， 不需要本地配置环境
+    OPENCV_LIB  = -L$$DEPENDS/opencv/lib/ -lopencv_world430  \
+                  -L$$DEPENDS/opencv/lib/ -lopencv_world430d
+    OPENCV_INC  =  $$DEPENDS/opencv/include
+}
+    # 加入依赖库和依赖头文件
+LIBS += $$OPENCV_LIB
+INCLUDEPATH += $$OPENCV_INC
+DEPENDPATH += $$OPENCV_INC
 
-INCLUDEPATH += $$PWD/Depend/opencv/include
-DEPENDPATH += $$PWD/Depend/opencv/include
+FORMS += \
+    src/mainwindow.ui
+
+HEADERS += \
+    src/mainwindow.h
+
+SOURCES += \
+    src/main.cpp \
+    src/mainwindow.cpp
+

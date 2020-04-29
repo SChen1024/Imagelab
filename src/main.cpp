@@ -44,8 +44,12 @@ cv::Mat testFunc2(const cv::Mat &src_img)
 
 int main(int argc, char *argv[])
 {
+//    QApplication a(argc, argv);
+//    MainWindow w;
+//    w.show();
+
     // 设置 要显示的图像路径
-    std::string lena_png = "./TestImages/lena.png";
+    std::string lena_png = "../TestImages/lena.png";
     cv::Mat src_img = cv::imread(lena_png);
     cv::cvtColor(src_img, src_img, cv::COLOR_BGR2GRAY);
 
