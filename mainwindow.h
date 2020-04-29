@@ -11,6 +11,10 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+public slots:
+    void testFunc1(void);
+    void testFunc2(void);
+
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
