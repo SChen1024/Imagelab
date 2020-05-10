@@ -124,6 +124,7 @@ void ShowMatOnQtLabel(const cv::Mat & src_img, QLabel * label)
 #include <random>
 using namespace  cv;
 using std::cout;
+using std::vector;
 
 // 添加椒盐噪声 // 生成 随机 num 个 白点
 void addSaltNoise(Mat &m, int num)
@@ -595,8 +596,131 @@ void separateGaussianFilter(const Mat &src, Mat &dst, int ksize, double sigma)
     delete[] matrix;
 }
 
+// 高斯滤波 计算图像
+cv::Mat gaussianFilter(const cv::Mat &src, int ksize = 3)
+{
+    cv::Mat dst;
+    GaussianFilter(src, dst, 3, 0.8);
+    cv::Mat res = dst(cv::Rect(cv::Point(1, 1), cv::Point(513, 513)));
+    return res;
+}
+cv::Mat gaussianFilter2(const cv::Mat &src, int ksize=3)
+{
+    cv::Mat dst;
+    separateGaussianFilter(src, dst, 3, 0.8);
 
+    cv::Mat res = dst(cv::Rect(cv::Point(1,1),cv::Point(513,513)));
+    return res;
+}
 
+// 使用 opencv 的 高斯滤波
+cv::Mat cvGaussianFilter(const cv::Mat &src, int ksize = 3)
+{
+    cv::Mat dst;
+    cv::GaussianBlur(src, dst, cv::Size(3, 3), 0, 0);
+    return dst;
+}
+
+void myBilateralFilter(const Mat &src, Mat &dst, int ksize, double space_sigma, double color_sigma)
+{
+    int channels = src.channels();
+    CV_Assert(channels == 1 || channels == 3);
+    double space_coeff = -0.5 / (space_sigma * space_sigma);
+    double color_coeff = -0.5 / (color_sigma * color_sigma);
+    int radius = ksize / 2;
+    Mat temp;
+    copyMakeBorder(src, temp, radius, radius, radius, radius, BorderTypes::BORDER_REFLECT);
+    std::vector<double> _color_weight(channels * 256); // 存放差值的平方
+    std::vector<double> _space_weight(ksize * ksize); // 空间模板系数
+    std::vector<int> _space_ofs(ksize * ksize); // 模板窗口的坐标
+    double *color_weight = &_color_weight[0];
+    double *space_weight = &_space_weight[0];
+    int    *space_ofs = &_space_ofs[0];
+    for (int i = 0; i < channels * 256; i++)
+        color_weight[i] = exp(i * i * color_coeff);
+    // 生成空间模板
+    int maxk = 0;
+    for (int i = -radius; i <= radius; i++)
+    {
+        for (int j = -radius; j <= radius; j++)
+        {
+            double r = sqrt(i*i + j * j);
+            if (r > radius)
+                continue;
+            space_weight[maxk] = exp(r * r * space_coeff); // 存放模板系数
+            space_ofs[maxk++] = i * temp.step + j * channels; // 存放模板的位置，和模板系数相对应
+        }
+    }
+    // 滤波过程
+    for (int i = 0; i < src.rows; i++)
+    {
+        const uchar *sptr = temp.data + (i + radius) * temp.step + radius * channels;
+        uchar *dptr = dst.data + i * dst.step;
+        if (channels == 1)
+        {
+            for (int j = 0; j < src.cols; j++)
+            {
+                double sum = 0, wsum = 0;
+                int val0 = sptr[j]; // 模板中心位置的像素
+                for (int k = 0; k < maxk; k++)
+                {
+                    int val = sptr[j + space_ofs[k]];
+                    double w = space_weight[k] * color_weight[abs(val - val0)]; // 模板系数 = 空间系数 * 灰度值系数
+                    sum += val * w;
+                    wsum += w;
+                }
+                dptr[j] = (uchar)cvRound(sum / wsum);
+            }
+        }
+        else if (channels == 3)
+        {
+            for (int j = 0; j < src.cols * 3; j += 3)
+            {
+                double sum_b = 0, sum_g = 0, sum_r = 0, wsum = 0;
+                int b0 = sptr[j];
+                int g0 = sptr[j + 1];
+                int r0 = sptr[j + 2];
+                for (int k = 0; k < maxk; k++)
+                {
+                    const uchar *sptr_k = sptr + j + space_ofs[k];
+                    int b = sptr_k[0];
+                    int g = sptr_k[1];
+                    int r = sptr_k[2];
+                    double w = space_weight[k] * color_weight[abs(b - b0) + abs(g - g0) + abs(r - r0)];
+                    sum_b += b * w;
+                    sum_g += g * w;
+                    sum_r += r * w;
+                    wsum += w;
+                }
+                wsum = 1.0f / wsum;
+                b0 = cvRound(sum_b * wsum);
+                g0 = cvRound(sum_g * wsum);
+                r0 = cvRound(sum_r * wsum);
+                dptr[j] = (uchar)b0;
+                dptr[j + 1] = (uchar)g0;
+                dptr[j + 2] = (uchar)r0;
+            }
+        }
+    }
+}
+
+// 双边滤波 效果
+cv::Mat bilateraFilter(const cv::Mat &src, int ksize = 3)
+{
+    cv::Mat dst=src.clone();
+    myBilateralFilter(src,dst,3,255,255);
+
+    // cv::Mat res = dst(cv::Rect(cv::Point(1, 1), cv::Point(513, 513)));
+    return dst;
+}
+
+// 使用 opencv 的 高斯滤波
+cv::Mat cvBilateraFilter(const cv::Mat &src, int ksize = 3)
+{
+    cv::Mat dst;
+    cv::bilateralFilter(src, dst, 3,255,255);
+    return dst;
+}
 // 将文件写入到 yuv 文件中 
 bool WriteMat2YUV(const cv::Mat &img, std::string file_name, bool is_yuv_flg = false)
 {
@@ -739,34 +863,22 @@ void MainWindow::testFunc2(void)
 
     cv::Mat test_img = gNoiseImg[TEST];
 
-    cv::Mat dst[4];
+    cv::Mat dst[2];
 
-    // 测试 中值滤波 拆分三个通道进行中值滤波然后合并图像
-    std::vector<cv::Mat> bgr(3);
-    cv::split(test_img, bgr);
-    bgr[0] = medianFilterGray(bgr[0]);
-    bgr[1] = medianFilterGray(bgr[1]);
-    bgr[2] = medianFilterGray(bgr[2]);
+    // 测试 高斯滤波
+    dst[0] = bilateraFilter(test_img);
+    dst[1] = cvBilateraFilter(test_img);
 
-    cv::merge(bgr, dst[0]);     // 第一种方式
-    dst[1] = medianFilterColor(test_img);   // 第二种 彩色直接 计算中值滤波
-    dst[2] = mediaFilterDefault(test_img);  // opencv 实现 中值滤波
-
-    // 拆分三个通道 计算自适应中值滤波
-    cv::split(test_img, bgr);
-    for (int i = 0; i < 3; i++)
-        bgr[i] = adaptiveMediaFilter(bgr[i]);
-    cv::merge(bgr, dst[3]);
 
 
     // 分别计算三种方式得到的滤波的效果 (结果图与 原始图比较)
-    for(int i=0;i<4;i++)
+    for(int i=0;i<2;i++)
     {
         res_str = compareImages(gSrcImg, dst[i]);
         // 噪声的参数值
         ui->pt_log->appendPlainText(res_str);
 
-        cv::imwrite(IMAGE_DIR + "dst_media_" + std::to_string(i+1)+".png",dst[i]);
+        cv::imwrite(IMAGE_DIR + "dst_bilatera_" + std::to_string(i+1)+".png",dst[i]);
     }
 
 
