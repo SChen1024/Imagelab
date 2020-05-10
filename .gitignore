@@ -112,3 +112,5 @@ release/
 TestImages/lena_write.png
 *.opendb
 *.ipch
+*.png
+testimages/
